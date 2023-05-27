@@ -1,0 +1,76 @@
+import hashlib
+import base58
+
+"""
+256-bit 64 char HEX is a key:
+6ca06ac67887a2b774c04807b720baac8d368564535f6ce0fb45a9381153bb5b
+
+Add 0x80 byte to beginning of the key to make an extended key:
+8006ca06ac67887a2b774c04807b720baac8d368564535f6ce0fb45a9381153bb5b
+
+SHA-256 once:
+B1AF887709CCA926F301A3776F3488E2D86F27992F001042312C3FD90DD75F64
+
+
+SHA-256 twice:
+554415FC529E605BF01FE6358ED101934F2907DD1B4B6E278CDCACE5BB5E3889
+
+
+Checksum is 1st 4 bytes of 2nd hash (1st 4 8-bit words, or 1st 8 4-bit word):
+554415FC
+
+
+Add the checksum bytes to the end of the extended key:
+8006ca06ac67887a2b774c04807b720baac8d368564535f6ce0fb45a9381153bb5b554415FC
+
+
+Encode the checksummed extended key into a base58 string:
+2EKDg1g6iZoQyencCRwdaKfoBQdwfEc6BN7rqC5CzqYJvC8ayh6jrHKqr8gTwHkTs7zv7XVXuSc5mJ5vtRdcJnmMZVpyLhoRAB6A7KY
+
+ 
+
+"""
+
+
+"""
+Creating a Base58Check string
+
+A Base58Check string is created from a version/application byte and payload as follows.
+
+    Take the version byte and payload bytes, and concatenate them together (bytewise).
+    Take the first four bytes of SHA256(SHA256(results of step 1))
+    Concatenate the results of step 1 and the results of step 2 together (bytewise).
+    Treating the results of step 3 - a series of bytes - as a single big-endian bignumber, convert to base-58 using normal mathematical steps (bignumber division) and the base-58 alphabet described below. The result should be normalized to not have any leading base-58 zeroes (character '1').
+    The leading character '1', which has a value of zero in base58, is reserved for representing an entire leading zero byte, as when it is in a leading position, has no value as a base-58 symbol. There can be one or more leading '1's when necessary to represent one or more leading zero bytes. Count the number of leading zero bytes that were the result of step 3 (for old Bitcoin addresses, there will always be at least one for the version/application byte; for new addresses, there will never be any). Each leading zero byte shall be represented by its own character '1' in the final result.
+    Concatenate the 1's from step 5 with the results of step 4. This is the Base58Check result.
+
+A more detailed example is provided on the page describing the technical background of the bitcoin address. 
+
+"""
+
+ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+def convertToBase58(num):
+    sb = ''
+    while (num > 0):
+        r = num % 58
+        sb = sb + ALPHABET[r]
+        num = num // 58;
+    return sb[::-1]
+
+s = 25420294593250030202636073700053352635053786165627414518
+b = convertToBase58(s)
+print("%-56d -> %s" % (s, b))
+
+hash_arr = [0x61, 0x626262, 0x636363, 0x73696d706c792061206c6f6e6720737472696e67, 0x516b6fcd0f, 0xbf4f89001e670274dd, 0x572e4794, 0xecac89cad93923c02321, 0x10c8511e]
+for num in hash_arr:
+    b = convertToBase58(num)
+    print("0x%-54x -> %s" % (num, b))
+    
+# A utility function that can be used in your code
+def compute_sha256(file_name):
+    hash_sha256 = hashlib.sha256()
+    with open(file_name, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_sha256.update(chunk)
+    return hash_sha256.hexdigest()
